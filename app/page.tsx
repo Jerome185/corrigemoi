@@ -50,7 +50,7 @@ export default function Home() {
           alt="logo" 
           className="h-28 md:h-32 mx-auto mb-6 drop-shadow-md"
         />
-        <h1 className="text-4xl font-bold mb-4">
+        <h1 className="text-3xl font-bold mb-4">
           Écris un français impeccable, instantanément
         </h1>
         <p className="text-gray-600">
