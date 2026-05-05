@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
@@ -11,7 +11,7 @@ export default function LoginPage() {
       <div className="bg-white p-8 rounded-xl shadow w-full max-w-md">
 
         <h1 className="text-2xl font-bold mb-6 text-center">
-          Connexion
+          Créer un compte
         </h1>
 
         <input
@@ -30,8 +30,8 @@ export default function LoginPage() {
           className="w-full border p-3 rounded mb-6"
         />
 
-        <button className="w-full bg-blue-600 text-white py-3 rounded">
-          Se connecter
+        <button className="w-full bg-green-600 text-white py-3 rounded">
+          S'inscrire
         </button>
 
       </div>
