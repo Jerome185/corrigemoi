@@ -1,29 +1,52 @@
-export function buildCorrectionPrompt(text: string) {
+export function buildCorrectionPrompt(
+  text: string,
+  mode: string
+) {
+
+  let instruction = ""
+
+  switch (mode) {
+
+    case "whatsapp":
+      instruction = `
+Améliore ce message WhatsApp pour qu'il soit naturel,
+fluide et sympathique.
+`
+      break
+
+    case "email_pro":
+      instruction = `
+Transforme ce texte en email professionnel clair,
+élégant et professionnel.
+`
+      break
+
+    case "francais_naturel":
+      instruction = `
+Réécris ce texte dans un français naturel,
+moderne et impeccable.
+`
+      break
+
+    default:
+      instruction = `
+Corrige ce texte en français impeccable.
+`
+  }
+
   return `
-Tu es un professeur de français expert et bienveillant.
+${instruction}
 
-Corrige le texte suivant.
-
-Retourne UNIQUEMENT du JSON valide.
-
-Format exact attendu :
+Réponds UNIQUEMENT au format JSON suivant :
 
 {
-  "corrected": "...",
+  "corrected": "texte corrigé",
   "explanations": [
-    "...",
-    "..."
+    "explication 1",
+    "explication 2"
   ],
-  "improved": "..."
+  "improved": "version améliorée"
 }
-
-Règles :
-- corrected = version grammaticalement correcte
-- explanations = liste simple et pédagogique
-- improved = version plus naturelle et professionnelle
-- aucune phrase hors JSON
-- aucun markdown
-- aucune balise
 
 Texte :
 "${text}"

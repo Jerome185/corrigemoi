@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { openai } from "@/lib/openai"
+
 import { buildCorrectionPrompt } from "@/lib/prompts"
 
 import { createClient } from "@/lib/supabase/server"
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
     const body = await req.json()
 
     const text = body.text?.trim()
+
+    const mode =
+      body.mode || "whatsapp"
 
     // VALIDATION
     if (!text) {
@@ -25,7 +29,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // LIMIT LENGTH
+    // LIMIT
     if (text.length > 1000) {
       return NextResponse.json(
         {
@@ -38,7 +42,8 @@ export async function POST(req: Request) {
     }
 
     // SUPABASE
-    const supabase = await createClient()
+    const supabase =
+      await createClient()
 
     const {
       data: { user },
@@ -46,56 +51,67 @@ export async function POST(req: Request) {
 
     let profile = null
 
-    // PROFILE + LIMIT CHECK
+    // PROFILE
     if (user) {
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
+      const { data } =
+        await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single()
 
       profile = data
 
-      if (profile) {
+      // RESET DAILY USAGE
+      const today = new Date()
+        .toISOString()
+        .split("T")[0]
 
-        // RESET DAILY USAGE
-        const today = new Date()
-          .toISOString()
-          .split("T")[0]
+      if (
+        profile &&
+        profile.usage_date !== today
+      ) {
 
-        if (profile.usage_date !== today) {
+        await supabase
+          .from("profiles")
+          .update({
+            daily_usage: 0,
+            usage_date: today,
+          })
+          .eq("id", user.id)
 
-          await supabase
-            .from("profiles")
-            .update({
-              daily_usage: 0,
-              usage_date: today,
-            })
-            .eq("id", user.id)
+        profile.daily_usage = 0
+      }
 
-          profile.daily_usage = 0
-        }
+      // FREE LIMIT
+      if (
+        profile &&
+        profile.subscription_status ===
+          "free" &&
+        profile.daily_usage >= 10
+      ) {
 
-        // FREE LIMIT
-        if (
-          profile.subscription_status === "free" &&
-          profile.daily_usage >= 10
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Limite gratuite atteinte aujourd’hui.",
-            },
-            {
-              status: 403,
-            }
-          )
-        }
+        return NextResponse.json(
+          {
+            error:
+              "Limite gratuite atteinte aujourd’hui.",
+          },
+          {
+            status: 403,
+          }
+        )
       }
     }
 
-    // OPENAI REQUEST
+    // PROMPT
+    const prompt =
+      buildCorrectionPrompt(
+        text,
+        mode
+      )
+
+    // OPENAI
     const completion =
       await openai.chat.completions.create({
         model: "gpt-4.1-mini",
@@ -103,8 +119,7 @@ export async function POST(req: Request) {
         messages: [
           {
             role: "user",
-            content:
-              buildCorrectionPrompt(text),
+            content: prompt,
           },
         ],
 
@@ -113,7 +128,8 @@ export async function POST(req: Request) {
 
     // RAW CONTENT
     const rawContent =
-      completion.choices[0]?.message?.content
+      completion.choices[0]?.message
+        ?.content
 
     if (!rawContent) {
       throw new Error("Réponse vide")
@@ -123,14 +139,18 @@ export async function POST(req: Request) {
     let parsed
 
     try {
-      parsed = JSON.parse(rawContent)
+
+      parsed =
+        JSON.parse(rawContent)
+
     } catch {
+
       throw new Error(
         "JSON invalide reçu depuis OpenAI"
       )
     }
 
-    // SAVE CORRECTION
+    // SAVE
     if (user) {
 
       await supabase
@@ -148,9 +168,11 @@ export async function POST(req: Request) {
 
           improved_text:
             parsed.improved,
+
+          mode,
         })
 
-      // UPDATE DAILY USAGE
+      // UPDATE USAGE
       await supabase
         .from("profiles")
         .update({
@@ -160,12 +182,14 @@ export async function POST(req: Request) {
         .eq("id", user.id)
     }
 
-    // RETURN
     return NextResponse.json(parsed)
 
   } catch (error) {
 
-    console.error("API ERROR:", error)
+    console.error(
+      "API ERROR:",
+      error
+    )
 
     return NextResponse.json(
       {

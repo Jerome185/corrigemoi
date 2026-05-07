@@ -4,174 +4,214 @@ import { useState } from "react"
 
 import ResultCard from "./ResultCard"
 
-import { correctText } from "@/services/correction"
+type CorrectionResponse = {
+  corrected: string
+  explanations: string[]
+  improved: string
+}
 
 export default function HomePage() {
+
   const [text, setText] = useState("")
-  const [loading, setLoading] = useState(false)
 
-  const [result, setResult] = useState<{
-    corrected: string
-    explanations: string[]
-    improved: string
-  } | null>(null)
+  const [loading, setLoading] =
+    useState(false)
 
-  const [error, setError] = useState("")
+  const [error, setError] =
+    useState("")
+
+  const [result, setResult] =
+    useState<CorrectionResponse | null>(
+      null
+    )
+
+  const [mode, setMode] =
+    useState("whatsapp")
 
   const handleSubmit = async () => {
+
     if (!text.trim()) return
 
     try {
+
       setLoading(true)
+
       setError("")
+
       setResult(null)
 
-      const data = await correctText(text)
+      const response = await fetch(
+        "/api/correct",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            text,
+            mode,
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(
+          data.error ||
+            "Une erreur est survenue."
+        )
+
+        return
+      }
 
       setResult(data)
 
-    } catch (err) {
-      setError("Une erreur est survenue.")
+    } catch {
+
+      setError(
+        "Une erreur est survenue."
+      )
+
     } finally {
+
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center px-6 py-16">
+    <main className="min-h-screen bg-gray-50 px-6 py-12">
 
       {/* HERO */}
-      <div className="text-center max-w-2xl mb-10">
+      <div className="max-w-3xl mx-auto text-center mb-10">
 
         <img
           src="/logo.png"
-          alt="Logo"
-          className="h-44 md:h-48 mx-auto mb-6 drop-shadow-md"
+          alt="logo"
+          className="h-44 mx-auto mb-6 drop-shadow-md"
         />
 
-        <h1 className="text-3xl md:text-3xl font-bold mb-4">
-          Écris un français impeccable, instantanément
+        <h1 className="text-5xl font-bold mb-4">
+          Écris un français impeccable,
+          instantanément
         </h1>
 
-        <p className="text-gray-600 text-lg">
-          Transforme tes messages en français naturel et professionnel.
+        <p className="text-xl text-gray-600">
+          Transforme tes messages en
+          français naturel et professionnel.
         </p>
       </div>
 
-      {/* INPUT BOX */}
-      <div className="w-full max-w-2xl bg-white p-6 rounded-xl shadow">
+      {/* INPUT */}
+      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6">
 
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) =>
+            setText(e.target.value)
+          }
           placeholder="Écris ton texte ici..."
-          className="w-full border p-4 rounded-lg mb-2 bg-white text-black resize-none"
-          rows={6}
+          rows={8}
           maxLength={1000}
+          className="w-full border rounded-xl p-4 text-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
-        {/* CHARACTER COUNT */}
-        <div className="flex justify-end mb-4">
-          <span className="text-sm text-gray-500">
-            {text.length} / 1000 caractères
-          </span>
+        {/* COUNTER */}
+        <div className="text-right text-sm text-gray-500 mt-2">
+          {text.length} / 1000 caractères
         </div>
 
+        {/* MODES */}
+        <div className="flex gap-3 mt-6 flex-wrap">
+
+          <button
+            onClick={() =>
+              setMode("whatsapp")
+            }
+            className={`px-4 py-2 rounded-full border transition ${
+              mode === "whatsapp"
+                ? "bg-blue-600 text-white"
+                : "bg-white"
+            }`}
+          >
+            WhatsApp
+          </button>
+
+          <button
+            onClick={() =>
+              setMode("email_pro")
+            }
+            className={`px-4 py-2 rounded-full border transition ${
+              mode === "email_pro"
+                ? "bg-blue-600 text-white"
+                : "bg-white"
+            }`}
+          >
+            Email Pro
+          </button>
+
+          <button
+            onClick={() =>
+              setMode(
+                "francais_naturel"
+              )
+            }
+            className={`px-4 py-2 rounded-full border transition ${
+              mode ===
+              "francais_naturel"
+                ? "bg-blue-600 text-white"
+                : "bg-white"
+            }`}
+          >
+            Français naturel
+          </button>
+        </div>
+
+        {/* BUTTON */}
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-semibold transition"
+          className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-semibold text-lg transition"
         >
           {loading
-            ? "✨ Analyse en cours..."
+            ? "Correction..."
             : "Corriger mon texte"}
         </button>
+
+        {/* ERROR */}
+        {error && (
+          <div className="mt-6 bg-red-100 text-red-700 p-4 rounded-xl">
+            {error}
+          </div>
+        )}
       </div>
 
-      {/* ERROR */}
-      {error && (
-        <p className="text-red-500 mt-4">
-          {error}
-        </p>
-      )}
-
-      {/* RESULT */}
+      {/* RESULTS */}
       {result && (
-        <ResultCard
-          corrected={result.corrected}
-          explanations={result.explanations}
-          improved={result.improved}
-        />
+        <div className="max-w-3xl mx-auto mt-10 space-y-6">
+
+          <ResultCard
+            title="✅ Texte corrigé"
+            content={result.corrected}
+            color="green"
+          />
+
+          <ResultCard
+            title="💡 Explications"
+            content={result.explanations}
+            color="blue"
+          />
+
+          <ResultCard
+            title="✨ Version améliorée"
+            content={result.improved}
+            color="emerald"
+          />
+        </div>
       )}
-
-      {/* QUICK EXAMPLES */}
-      <div className="flex flex-wrap gap-3 mt-10 justify-center">
-
-        <button
-          onClick={() =>
-            setText("moi pas comprendre ce document")
-          }
-          className="bg-white shadow px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition"
-        >
-          WhatsApp
-        </button>
-
-        <button
-          onClick={() =>
-            setText(
-              "bonjour monsieur je vous envoie mon cv merci"
-            )
-          }
-          className="bg-white shadow px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition"
-        >
-          Email professionnel
-        </button>
-
-        <button
-          onClick={() =>
-            setText(
-              "je vais prend le bus demain matin"
-            )
-          }
-          className="bg-white shadow px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition"
-        >
-          Français naturel
-        </button>
-      </div>
-
-      {/* FEATURES */}
-      <div className="grid md:grid-cols-3 gap-6 mt-16 w-full max-w-6xl">
-
-        <div className="bg-white rounded-xl shadow p-6 text-center">
-          <h3 className="font-bold text-xl mb-2">
-            Correction instantanée
-          </h3>
-
-          <p className="text-gray-600">
-            Corrige tes fautes en temps réel avec une IA intelligente.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-6 text-center">
-          <h3 className="font-bold text-xl mb-2">
-            Explications claires
-          </h3>
-
-          <p className="text-gray-600">
-            Comprends tes erreurs et progresse rapidement.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-6 text-center">
-          <h3 className="font-bold text-xl mb-2">
-            Français naturel
-          </h3>
-
-          <p className="text-gray-600">
-            Améliore ton style pour parler comme un natif.
-          </p>
-        </div>
-      </div>
     </main>
   )
 }

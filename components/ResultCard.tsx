@@ -1,53 +1,53 @@
-interface ResultCardProps {
-  corrected: string
-  explanations: string[]
-  improved: string
+type ResultCardProps = {
+  title: string
+  content: string | string[]
+  color: "green" | "blue" | "emerald"
 }
 
 export default function ResultCard({
-  corrected,
-  explanations,
-  improved,
+  title,
+  content,
+  color,
 }: ResultCardProps) {
+
+  const colorClasses = {
+    green:
+      "border-green-200 bg-white",
+
+    blue:
+      "border-blue-200 bg-white",
+
+    emerald:
+      "border-emerald-200 bg-emerald-50",
+  }
+
   return (
-    <div className="w-full max-w-2xl mt-6 space-y-6">
-      
-      {/* CORRECTION */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-green-600 font-bold text-xl mb-3">
-          ✅ Texte corrigé
-        </h2>
+    <div
+      className={`rounded-2xl border p-6 shadow-sm ${colorClasses[color]}`}
+    >
+      <h2 className="text-2xl font-bold mb-4">
+        {title}
+      </h2>
 
-        <p className="text-gray-800 text-lg leading-relaxed">
-          {corrected}
-        </p>
-      </div>
+      {Array.isArray(content) ? (
 
-      {/* EXPLANATIONS */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-blue-600 font-bold text-xl mb-3">
-          💡 Explications
-        </h2>
-
-        <ul className="list-disc pl-5 space-y-3 text-gray-700">
-          {explanations.map((exp, index) => (
-            <li key={index}>
-              {exp}
-            </li>
-          ))}
+        <ul className="space-y-3 list-disc pl-5 text-gray-700 text-lg">
+          {content.map(
+            (item, index) => (
+              <li key={index}>
+                {item}
+              </li>
+            )
+          )}
         </ul>
-      </div>
 
-      {/* IMPROVED VERSION */}
-      <div className="bg-green-50 rounded-xl shadow p-6 border border-green-100">
-        <h2 className="text-green-700 font-bold text-xl mb-3">
-          ✨ Version améliorée
-        </h2>
+      ) : (
 
-        <p className="text-gray-800 text-lg leading-relaxed">
-          {improved}
+        <p className="text-xl text-gray-800 leading-9">
+          {content}
         </p>
-      </div>
+
+      )}
     </div>
   )
 }
