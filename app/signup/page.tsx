@@ -2,10 +2,13 @@
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
-export default function LoginPage() {
+export default function SignupPage() {
 
   const supabase = createClient()
+
+  const router = useRouter()
 
   const [email, setEmail] =
     useState("")
@@ -19,42 +22,27 @@ export default function LoginPage() {
   const [error, setError] =
     useState("")
 
-  const handleLogin = async (
-    e: React.FormEvent
-  ) => {
-
-    e.preventDefault()
-
-    console.log("LOGIN START")
+  const handleSignup = async () => {
 
     try {
 
       setLoading(true)
-
       setError("")
 
-      const {
-        data,
-        error,
-      } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      console.log("LOGIN DATA:", data)
-      console.log("LOGIN ERROR:", error)
+      const { error } =
+        await supabase.auth.signUp({
+          email,
+          password,
+        })
 
       if (error) {
         setError(error.message)
         return
       }
 
-      window.location.href =
-        "/dashboard"
+      router.push("/dashboard")
 
-    } catch (err) {
-
-      console.log(err)
+    } catch {
 
       setError(
         "Une erreur est survenue."
@@ -67,46 +55,38 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="
-        min-h-screen
-        flex
-        items-center
-        justify-center
-        bg-gray-50
-        px-6
-      "
-    >
+    <main className="
+      min-h-screen
+      flex
+      items-center
+      justify-center
+      bg-gray-50
+      px-6
+    ">
 
-      <form
-        onSubmit={handleLogin}
-        className="
-          w-full
-          max-w-md
-          bg-white
-          p-8
-          rounded-2xl
-          shadow-sm
-          border
-        "
-      >
+      <div className="
+        w-full
+        max-w-md
+        bg-white
+        p-8
+        rounded-2xl
+        shadow-sm
+        border
+      ">
 
-        <h1
-          className="
-            text-3xl
-            font-bold
-            mb-6
-            text-center
-          "
-        >
-          Connexion
+        <h1 className="
+          text-3xl
+          font-bold
+          mb-6
+          text-center
+        ">
+          Créer un compte
         </h1>
 
         <div className="space-y-4">
 
           <input
             type="email"
-            autoComplete="email"
             placeholder="Email"
             value={email}
             onChange={(e) =>
@@ -122,7 +102,6 @@ export default function LoginPage() {
 
           <input
             type="password"
-            autoComplete="current-password"
             placeholder="Mot de passe"
             value={password}
             onChange={(e) =>
@@ -137,7 +116,7 @@ export default function LoginPage() {
           />
 
           <button
-            type="submit"
+            onClick={handleSignup}
             disabled={loading}
             className="
               w-full
@@ -151,26 +130,24 @@ export default function LoginPage() {
             "
           >
             {loading
-              ? "Connexion..."
-              : "Se connecter"}
+              ? "Création..."
+              : "Créer mon compte"}
           </button>
 
           {error && (
-            <div
-              className="
-                bg-red-50
-                border
-                border-red-200
-                text-red-700
-                p-4
-                rounded-xl
-              "
-            >
+            <div className="
+              bg-red-50
+              border
+              border-red-200
+              text-red-700
+              p-4
+              rounded-xl
+            ">
               {error}
             </div>
           )}
         </div>
-      </form>
+      </div>
     </main>
   )
 }
