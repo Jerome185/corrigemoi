@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import Link from "next/link"
 
 export default function LoginPage() {
 
@@ -50,7 +51,7 @@ export default function LoginPage() {
       }
 
       window.location.href =
-        "/dashboard"
+        "/"
 
     } catch (err) {
 
@@ -154,6 +155,21 @@ export default function LoginPage() {
               ? "Connexion..."
               : "Se connecter"}
           </button>
+
+          <div className="text-center pt-2">
+
+            <Link
+            href="/signup"
+            className="
+            text-sm
+            text-blue-600
+            hover:underline
+            "
+          >
+            Pas encore de compte ? Créer un compte
+            </Link>
+
+        </div>
 
           {error && (
             <div

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function SignupPage() {
 
@@ -133,7 +134,20 @@ export default function SignupPage() {
               ? "Création..."
               : "Créer mon compte"}
           </button>
+            <div className="text-center pt-2">
 
+            <Link
+            href="/login"
+            className="
+            text-sm
+            text-blue-600
+            hover:underline
+            "
+            >
+                Déjà un compte ? Se connecter
+            </Link>
+
+</div>
           {error && (
             <div className="
               bg-red-50
