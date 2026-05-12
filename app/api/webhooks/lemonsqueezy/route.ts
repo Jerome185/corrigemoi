@@ -1,71 +1,142 @@
 import { NextResponse } from "next/server"
 
+import crypto from "crypto"
+
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(req: Request) {
+
   try {
 
-    const body = await req.json()
+    // RAW BODY
+    const body = await req.text()
 
-    console.log("LEMON WEBHOOK:", body)
+    // SIGNATURE
+    const signature =
+      req.headers.get("x-signature")
 
-    const eventName = body.meta?.event_name
+    // SECRET
+    const secret =
+      process.env.LEMONSQUEEZY_WEBHOOK_SECRET!
 
-    // PAYMENT SUCCESS
+    // VERIFY SIGNATURE
+    const digest = crypto
+      .createHmac("sha256", secret)
+      .update(body)
+      .digest("hex")
+
+    if (digest !== signature) {
+
+      console.log("INVALID SIGNATURE")
+
+      return NextResponse.json(
+        {
+          error: "Invalid signature",
+        },
+        {
+          status: 401,
+        }
+      )
+    }
+
+    // PARSE JSON
+    const payload = JSON.parse(body)
+
+    console.log(
+      "LEMON WEBHOOK:",
+      payload
+    )
+
+    const eventName =
+      payload.meta?.event_name
+
+    const data =
+      payload.data
+
+    const attributes =
+      data?.attributes
+
+    const customData =
+      attributes?.custom_data || {}
+
+    const userId =
+      customData?.user_id
+
+    const supabase =
+      await createClient()
+
+    // =========================
+    // SUB CREATED / UPDATED
+    // =========================
+
     if (
       eventName ===
-      "subscription_created"
+        "subscription_created" ||
+
+      eventName ===
+        "subscription_updated"
     ) {
 
-      const email =
-        body.data?.attributes?.user_email
+      if (!userId) {
 
-      const customerId =
-        body.data?.attributes?.customer_id
+        console.log(
+          "NO USER ID"
+        )
 
-      const orderId =
-        body.data?.attributes?.order_id
-
-      if (!email) {
         return NextResponse.json({
           success: false,
         })
       }
 
-      const supabase =
-        await createClient()
-
-      // FIND PROFILE
-      const { data: profile } =
-        await supabase
-          .from("profiles")
-          .select("*")
-          .eq("email", email)
-          .single()
-
-      if (!profile) {
-        return NextResponse.json({
-          success: false,
-        })
-      }
-
-      // UPDATE PREMIUM
       await supabase
         .from("profiles")
         .update({
+
           subscription_status:
             "premium",
 
           lemonsqueezy_customer_id:
-            String(customerId),
+            String(
+              attributes.customer_id
+            ),
 
           lemonsqueezy_order_id:
-            String(orderId),
+            String(
+              attributes.order_id
+            ),
+
+          lemonsqueezy_subscription_id:
+            String(data.id),
         })
-        .eq("id", profile.id)
+        .eq("id", userId)
 
       console.log(
-        "USER UPGRADED TO PREMIUM"
+        "USER UPGRADED"
+      )
+    }
+
+    // =========================
+    // SUB CANCELLED
+    // =========================
+
+    if (
+      eventName ===
+      "subscription_cancelled"
+    ) {
+
+      await supabase
+        .from("profiles")
+        .update({
+          subscription_status:
+            "free",
+        })
+        .eq(
+          "lemonsqueezy_subscription_id",
+          String(data.id)
+        )
+
+      console.log(
+        "SUB CANCELLED"
       )
     }
 
@@ -75,7 +146,10 @@ export async function POST(req: Request) {
 
   } catch (error) {
 
-    console.error(error)
+    console.error(
+      "WEBHOOK ERROR:",
+      error
+    )
 
     return NextResponse.json(
       {

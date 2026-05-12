@@ -7,14 +7,8 @@ export default function PricingPage() {
 
       {/* HEADER */}
       <header className="border-b bg-white">
-        <div
-          className="
-            max-w-6xl
-            mx-auto
-            px-6
-            py-4
-          "
-        >
+        <div className="max-w-6xl mx-auto px-6 py-4">
+
           <Link
             href="/"
             className="flex items-center gap-3 w-fit"
@@ -42,8 +36,26 @@ export default function PricingPage() {
       {/* CONTENT */}
       <section className="px-6 py-16">
 
-        <div className="max-w-md mx-auto">
+        <div className="max-w-lg mx-auto">
 
+          {/* BADGE */}
+          <div className="flex justify-center mb-5">
+            <div
+              className="
+                bg-blue-100
+                text-blue-700
+                px-4
+                py-2
+                rounded-full
+                text-sm
+                font-semibold
+              "
+            >
+              🔥 Le plus populaire
+            </div>
+          </div>
+
+          {/* CARD */}
           <div
             className="
               bg-white
@@ -75,8 +87,8 @@ export default function PricingPage() {
                 text-base
               "
             >
-              Corrige ton français sans limites
-              et progresse plus rapidement.
+              Écris un français professionnel,
+              naturel et impeccable sans limite.
             </p>
 
             {/* PRICE */}
@@ -113,7 +125,11 @@ export default function PricingPage() {
               </Feature>
 
               <Feature>
-                Futures fonctionnalités IA
+                Explications intelligentes IA
+              </Feature>
+
+              <Feature>
+                Futures fonctionnalités premium
               </Feature>
 
               <Feature>
@@ -123,36 +139,74 @@ export default function PricingPage() {
 
             {/* CTA */}
             <a
-            href="https://corrigemoi.lemonsqueezy.com/checkout/buy/231fbe99-b197-4fa7-9eb8-8c0bb9ae6bcd"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="
-            block
-            w-full
-            bg-blue-600
-            hover:bg-blue-700
-            text-white
-            py-4
-            rounded-2xl
-            font-semibold
-            text-center
-            transition
-            "
-                >
-                Passer Premium
+              href="https://corrigemoi.lemonsqueezy.com/checkout/buy/231fbe99-b197-4fa7-9eb8-8c0bb9ae6bcd"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="
+                block
+                w-full
+                bg-blue-600
+                hover:bg-blue-700
+                text-white
+                py-4
+                rounded-2xl
+                font-semibold
+                text-center
+                transition
+              "
+            >
+              Débloquer Premium
             </a>
 
-            {/* FOOTER */}
+            {/* GUARANTEE */}
+            <div
+                className="
+                mt-5
+                text-center
+                text-sm
+                text-gray-500
+                leading-relaxed
+                        "
+            >
+            ✅ Annule ton abonnement à tout moment
+            depuis ton espace client Lemon Squeezy.
+            </div>
+
+            {/* PAYMENT INFO */}
             <p
               className="
                 text-center
                 text-sm
                 text-gray-400
-                mt-5
+                mt-3
               "
             >
               Paiement sécurisé via Lemon Squeezy
             </p>
+          </div>
+
+          {/* FAQ */}
+          <div className="mt-10 space-y-4">
+
+            <Faq
+              question="Puis-je annuler mon abonnement ?"
+              answer="Oui. Tu peux annuler à tout moment sans engagement."
+            />
+
+            <Faq
+              question="Mes données sont-elles sécurisées ?"
+              answer="Oui. Les données sont sécurisées via Supabase et les paiements sont gérés par Lemon Squeezy."
+            />
+
+            <Faq
+              question="Y a-t-il une limite de corrections ?"
+              answer="Non. Le plan Premium permet des corrections illimitées."
+            />
+
+            <Faq
+              question="Puis-je utiliser CorrigeMoi sur mobile ?"
+              answer="Oui. CorrigeMoi fonctionne sur ordinateur, tablette et mobile."
+            />
           </div>
         </div>
       </section>
@@ -160,6 +214,7 @@ export default function PricingPage() {
   )
 }
 
+/* FEATURE */
 function Feature({
   children,
 }: {
@@ -175,6 +230,40 @@ function Feature({
       <span className="text-gray-800">
         {children}
       </span>
+    </div>
+  )
+}
+
+/* FAQ */
+function Faq({
+  question,
+  answer,
+}: {
+  question: string
+  answer: string
+}) {
+  return (
+    <div
+      className="
+        bg-white
+        border
+        rounded-2xl
+        p-5
+      "
+    >
+
+      <h3
+        className="
+          font-semibold
+          mb-2
+        "
+      >
+        {question}
+      </h3>
+
+      <p className="text-gray-600 text-sm leading-relaxed">
+        {answer}
+      </p>
     </div>
   )
 }
