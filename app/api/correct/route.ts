@@ -7,6 +7,7 @@ import { buildCorrectionPrompt } from "@/lib/prompts"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(req: Request) {
+
   try {
 
     // BODY
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
 
     // VALIDATION
     if (!text) {
+
       return NextResponse.json(
         {
           error: "Texte requis",
@@ -31,6 +33,7 @@ export async function POST(req: Request) {
 
     // LIMIT
     if (text.length > 1000) {
+
       return NextResponse.json(
         {
           error: "Texte trop long",
@@ -49,59 +52,70 @@ export async function POST(req: Request) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    let profile = null
+    // AUTH REQUIRED
+    if (!user) {
+
+      return NextResponse.json(
+        {
+          error:
+            "Connexion requise.",
+        },
+        {
+          status: 401,
+        }
+      )
+    }
 
     // PROFILE
-    if (user) {
+    let profile = null
 
-      const { data } =
-        await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single()
+    const { data } =
+      await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
 
-      profile = data
+    profile = data
 
-      // RESET DAILY USAGE
-      const today = new Date()
-        .toISOString()
-        .split("T")[0]
+    // RESET DAILY USAGE
+    const today = new Date()
+      .toISOString()
+      .split("T")[0]
 
-      if (
-        profile &&
-        profile.usage_date !== today
-      ) {
+    if (
+      profile &&
+      profile.usage_date !== today
+    ) {
 
-        await supabase
-          .from("profiles")
-          .update({
-            daily_usage: 0,
-            usage_date: today,
-          })
-          .eq("id", user.id)
+      await supabase
+        .from("profiles")
+        .update({
+          daily_usage: 0,
+          usage_date: today,
+        })
+        .eq("id", user.id)
 
-        profile.daily_usage = 0
-      }
+      profile.daily_usage = 0
+    }
 
-      // FREE LIMIT
-      if (
-        profile &&
-        profile.subscription_status ===
-          "free" &&
-        profile.daily_usage >= 10
-      ) {
+    // FREE LIMIT
+    if (
+      profile &&
+      profile.subscription_status ===
+        "free" &&
+      profile.daily_usage >= 10
+    ) {
 
-        return NextResponse.json(
-          {
-            error:
-              "Limite gratuite atteinte aujourd’hui.",
-          },
-          {
-            status: 403,
-          }
-        )
-      }
+      return NextResponse.json(
+        {
+          error:
+            "Limite gratuite atteinte aujourd’hui.",
+        },
+        {
+          status: 403,
+        }
+      )
     }
 
     // PROMPT
@@ -132,7 +146,10 @@ export async function POST(req: Request) {
         ?.content
 
     if (!rawContent) {
-      throw new Error("Réponse vide")
+
+      throw new Error(
+        "Réponse vide"
+      )
     }
 
     // JSON PARSE
@@ -150,37 +167,34 @@ export async function POST(req: Request) {
       )
     }
 
-    // SAVE
-    if (user) {
+    // SAVE CORRECTION
+    await supabase
+      .from("corrections")
+      .insert({
+        user_id: user.id,
 
-      await supabase
-        .from("corrections")
-        .insert({
-          user_id: user.id,
+        original_text: text,
 
-          original_text: text,
+        corrected_text:
+          parsed.corrected,
 
-          corrected_text:
-            parsed.corrected,
+        explanations:
+          parsed.explanations,
 
-          explanations:
-            parsed.explanations,
+        improved_text:
+          parsed.improved,
 
-          improved_text:
-            parsed.improved,
+        mode,
+      })
 
-          mode,
-        })
-
-      // UPDATE USAGE
-      await supabase
-        .from("profiles")
-        .update({
-          daily_usage:
-            (profile?.daily_usage || 0) + 1,
-        })
-        .eq("id", user.id)
-    }
+    // UPDATE USAGE
+    await supabase
+      .from("profiles")
+      .update({
+        daily_usage:
+          (profile?.daily_usage || 0) + 1,
+      })
+      .eq("id", user.id)
 
     return NextResponse.json(parsed)
 

@@ -45,9 +45,18 @@ export default function RegisterPage() {
       // CREATE PROFILE
       if (user) {
         await supabase.from("profiles").insert({
-          id: user.id,
-          email: user.email,
-        })
+      id: user.id,
+
+      email: user.email,
+
+      subscription_status: "free",
+
+      daily_usage: 0,
+
+      usage_date: new Date()
+      .toISOString()
+      .split("T")[0],
+    })
       }
 
       router.push("/login")
