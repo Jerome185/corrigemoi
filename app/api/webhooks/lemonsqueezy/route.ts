@@ -20,13 +20,23 @@ export async function POST(req: Request) {
     ) {
       const subscription = body.data.attributes
 
-      // ✅ récupération correcte du user_id
-      const userId = subscription.custom_data?.user_id || null
+      const email = subscription.user_email
+
+      // Recherche utilisateur Supabase via email
+      const { data: usersData, error: userError } =
+        await supabase.auth.admin.listUsers()
+
+      if (userError) {
+        console.error("USER FETCH ERROR:", userError)
+      }
+
+      const matchedUser =
+        usersData?.users.find((u) => u.email === email) || null
 
       await supabase.from("subscriptions").upsert({
         lemon_subscription_id: String(body.data.id),
-        user_id: userId,
-        customer_email: subscription.user_email,
+        user_id: matchedUser?.id || null,
+        customer_email: email,
         status: subscription.status,
         variant_id: String(subscription.variant_id),
       })
