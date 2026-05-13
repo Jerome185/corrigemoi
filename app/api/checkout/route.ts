@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const supabase = await createClient()
 
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (!user || !user.email) {
       return NextResponse.json(
         {
           error: "Utilisateur non connecté",
@@ -19,8 +19,6 @@ export async function POST(req: Request) {
         }
       )
     }
-
-    const { email } = await req.json()
 
     const response = await fetch(
       "https://api.lemonsqueezy.com/v1/checkouts",
@@ -36,10 +34,7 @@ export async function POST(req: Request) {
             type: "checkouts",
             attributes: {
               checkout_data: {
-                email,
-                custom: {
-                  user_id: user.id,
-                },
+                email: user.email,
               },
             },
             relationships: {
