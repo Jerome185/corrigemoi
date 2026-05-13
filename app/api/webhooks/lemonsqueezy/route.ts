@@ -1,159 +1,54 @@
 import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
-import crypto from "crypto"
-
-import { createClient } from "@/lib/supabase/server"
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: Request) {
-
   try {
+    const body = await req.json()
 
-    // RAW BODY
-    const body = await req.text()
+    console.log("LEMON WEBHOOK:", JSON.stringify(body, null, 2))
 
-    // SIGNATURE
-    const signature =
-      req.headers.get("x-signature")
-
-    // SECRET
-    const secret =
-      process.env.LEMONSQUEEZY_WEBHOOK_SECRET!
-
-    // VERIFY SIGNATURE
-    const digest = crypto
-      .createHmac("sha256", secret)
-      .update(body)
-      .digest("hex")
-
-    if (digest !== signature) {
-
-      console.log("INVALID SIGNATURE")
-
-      return NextResponse.json(
-        {
-          error: "Invalid signature",
-        },
-        {
-          status: 401,
-        }
-      )
-    }
-
-    // PARSE JSON
-    const payload = JSON.parse(body)
-
-    console.log(
-      "LEMON WEBHOOK:",
-      payload
-    )
-
-    const eventName =
-      payload.meta?.event_name
-
-    const data =
-      payload.data
-
-    const attributes =
-      data?.attributes
-
-    const customData =
-      attributes?.custom_data || {}
-
-    const userId =
-      customData?.user_id
-
-    const supabase =
-      await createClient()
-
-    // =========================
-    // SUB CREATED / UPDATED
-    // =========================
+    const eventName = body.meta.event_name
 
     if (
-      eventName ===
-        "subscription_created" ||
-
-      eventName ===
-        "subscription_updated"
+      eventName === "subscription_created" ||
+      eventName === "subscription_updated"
     ) {
+      const subscription = body.data.attributes
 
-      if (!userId) {
+      const userId = body.meta.custom_data?.user_id || null
 
-        console.log(
-          "NO USER ID"
-        )
-
-        return NextResponse.json({
-          success: false,
-        })
-      }
-
-      await supabase
-        .from("profiles")
-        .update({
-
-          subscription_status:
-            "premium",
-
-          lemonsqueezy_customer_id:
-            String(
-              attributes.customer_id
-            ),
-
-          lemonsqueezy_order_id:
-            String(
-              attributes.order_id
-            ),
-
-          lemonsqueezy_subscription_id:
-            String(data.id),
-        })
-        .eq("id", userId)
-
-      console.log(
-        "USER UPGRADED"
-      )
+      await supabase.from("subscriptions").upsert({
+        lemon_subscription_id: String(body.data.id),
+        user_id: userId,
+        customer_email: subscription.user_email,
+        status: subscription.status,
+        variant_id: String(subscription.variant_id),
+      })
     }
 
-    // =========================
-    // SUB CANCELLED
-    // =========================
-
-    if (
-      eventName ===
-      "subscription_cancelled"
-    ) {
-
+    if (eventName === "subscription_cancelled") {
       await supabase
-        .from("profiles")
+        .from("subscriptions")
         .update({
-          subscription_status:
-            "free",
+          status: "cancelled",
         })
-        .eq(
-          "lemonsqueezy_subscription_id",
-          String(data.id)
-        )
-
-      console.log(
-        "SUB CANCELLED"
-      )
+        .eq("lemon_subscription_id", String(body.data.id))
     }
 
     return NextResponse.json({
       success: true,
     })
-
   } catch (error) {
-
-    console.error(
-      "WEBHOOK ERROR:",
-      error
-    )
+    console.error("WEBHOOK ERROR:", error)
 
     return NextResponse.json(
       {
-        success: false,
+        error: "Webhook error",
       },
       {
         status: 500,
