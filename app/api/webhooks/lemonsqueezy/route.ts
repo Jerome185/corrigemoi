@@ -20,7 +20,8 @@ export async function POST(req: Request) {
     ) {
       const subscription = body.data.attributes
 
-      const userId = body.meta.custom_data?.user_id || null
+      // ✅ récupération correcte du user_id
+      const userId = subscription.custom_data?.user_id || null
 
       await supabase.from("subscriptions").upsert({
         lemon_subscription_id: String(body.data.id),
