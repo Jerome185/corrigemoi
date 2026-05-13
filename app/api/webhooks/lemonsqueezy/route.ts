@@ -22,6 +22,8 @@ export async function POST(req: Request) {
 
       const email = subscription.user_email
 
+      console.log("EMAIL FROM LEMON:", email)
+
       // Recherche utilisateur Supabase via email
       const { data: usersData, error: userError } =
         await supabase.auth.admin.listUsers()
@@ -31,24 +33,46 @@ export async function POST(req: Request) {
       }
 
       const matchedUser =
-        usersData?.users.find((u) => u.email === email) || null
+        usersData?.users.find(
+          (u) => u.email?.toLowerCase() === email?.toLowerCase()
+        ) || null
 
-      await supabase.from("subscriptions").upsert({
-        lemon_subscription_id: String(body.data.id),
-        user_id: matchedUser?.id || null,
-        customer_email: email,
-        status: subscription.status,
-        variant_id: String(subscription.variant_id),
-      })
+      console.log("MATCHED USER:", matchedUser)
+
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .upsert(
+          {
+            lemon_subscription_id: String(body.data.id),
+            user_id: matchedUser?.id || null,
+            customer_email: email,
+            status: subscription.status,
+            variant_id: String(subscription.variant_id),
+          },
+          {
+            onConflict: "lemon_subscription_id",
+          }
+        )
+        .select()
+
+      if (error) {
+        console.error("UPSERT ERROR:", error)
+      }
+
+      console.log("UPSERT RESULT:", data)
     }
 
     if (eventName === "subscription_cancelled") {
-      await supabase
+      const { error } = await supabase
         .from("subscriptions")
         .update({
           status: "cancelled",
         })
         .eq("lemon_subscription_id", String(body.data.id))
+
+      if (error) {
+        console.error("CANCEL ERROR:", error)
+      }
     }
 
     return NextResponse.json({
