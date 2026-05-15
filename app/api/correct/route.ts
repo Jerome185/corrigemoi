@@ -6,21 +6,19 @@ import { buildCorrectionPrompt } from "@/lib/prompts"
 
 import { createClient } from "@/lib/supabase/server"
 
+import { isPremiumUser } from "@/lib/subscription"
+
 export async function POST(req: Request) {
-
   try {
-
     // BODY
     const body = await req.json()
 
     const text = body.text?.trim()
 
-    const mode =
-      body.mode || "whatsapp"
+    const mode = body.mode || "whatsapp"
 
     // VALIDATION
     if (!text) {
-
       return NextResponse.json(
         {
           error: "Texte requis",
@@ -33,7 +31,6 @@ export async function POST(req: Request) {
 
     // LIMIT
     if (text.length > 1000) {
-
       return NextResponse.json(
         {
           error: "Texte trop long",
@@ -45,8 +42,7 @@ export async function POST(req: Request) {
     }
 
     // SUPABASE
-    const supabase =
-      await createClient()
+    const supabase = await createClient()
 
     const {
       data: { user },
@@ -54,11 +50,9 @@ export async function POST(req: Request) {
 
     // AUTH REQUIRED
     if (!user) {
-
       return NextResponse.json(
         {
-          error:
-            "Connexion requise.",
+          error: "Connexion requise.",
         },
         {
           status: 401,
@@ -66,15 +60,17 @@ export async function POST(req: Request) {
       )
     }
 
+    // PREMIUM CHECK
+    const premium = await isPremiumUser(user.id)
+
     // PROFILE
     let profile = null
 
-    const { data } =
-      await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
 
     profile = data
 
@@ -87,7 +83,6 @@ export async function POST(req: Request) {
       profile &&
       profile.usage_date !== today
     ) {
-
       await supabase
         .from("profiles")
         .update({
@@ -101,12 +96,10 @@ export async function POST(req: Request) {
 
     // FREE LIMIT
     if (
+      !premium &&
       profile &&
-      profile.subscription_status ===
-        "free" &&
       profile.daily_usage >= 10
     ) {
-
       return NextResponse.json(
         {
           error:
@@ -146,7 +139,6 @@ export async function POST(req: Request) {
         ?.content
 
     if (!rawContent) {
-
       throw new Error(
         "Réponse vide"
       )
@@ -156,12 +148,9 @@ export async function POST(req: Request) {
     let parsed
 
     try {
-
       parsed =
         JSON.parse(rawContent)
-
     } catch {
-
       throw new Error(
         "JSON invalide reçu depuis OpenAI"
       )
@@ -197,9 +186,7 @@ export async function POST(req: Request) {
       .eq("id", user.id)
 
     return NextResponse.json(parsed)
-
   } catch (error) {
-
     console.error(
       "API ERROR:",
       error
