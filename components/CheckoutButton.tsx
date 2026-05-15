@@ -27,12 +27,5 @@ export default function CheckoutButton() {
     }
   }
 
-  return (
-    <button
-      onClick={handleCheckout}
-      className="bg-black text-white px-6 py-3 rounded-xl hover:opacity-90 transition"
-    >
-      Tester abonnement
-    </button>
-  )
+  
 }
