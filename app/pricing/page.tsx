@@ -1,14 +1,33 @@
 import Link from "next/link"
 import Image from "next/image"
 
-export default function PricingPage() {
+import { createClient } from "@/lib/supabase/server"
+
+export default async function PricingPage() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   return (
     <main className="min-h-screen bg-gray-50">
 
       {/* HEADER */}
       <header className="border-b bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+        <div
+          className="
+            max-w-6xl
+            mx-auto
+            px-6
+            py-4
+            flex
+            items-center
+            justify-between
+          "
+        >
 
+          {/* LOGO */}
           <Link
             href="/"
             className="flex items-center gap-3 w-fit"
@@ -30,6 +49,81 @@ export default function PricingPage() {
               </div>
             </div>
           </Link>
+
+          {/* NAVIGATION */}
+          <div className="flex items-center gap-3">
+
+            {!user ? (
+              <>
+                <Link
+                  href="/login"
+                  className="
+                    text-sm
+                    font-medium
+                    text-gray-700
+                    hover:text-black
+                    transition
+                  "
+                >
+                  Connexion
+                </Link>
+
+                <Link
+                  href="/signup"
+                  className="
+                    bg-black
+                    text-white
+                    px-4
+                    py-2
+                    rounded-xl
+                    text-sm
+                    font-medium
+                    hover:opacity-90
+                    transition
+                  "
+                >
+                  Créer un compte
+                </Link>
+              </>
+            ) : (
+              <>
+                <div
+                  className="
+                    hidden
+                    sm:flex
+                    items-center
+                    gap-2
+                    bg-green-100
+                    text-green-700
+                    px-3
+                    py-2
+                    rounded-xl
+                    text-sm
+                    font-medium
+                  "
+                >
+                  ✓ Connecté
+                </div>
+
+                <Link
+                  href="/dashboard"
+                  className="
+                    bg-black
+                    text-white
+                    px-4
+                    py-2
+                    rounded-xl
+                    text-sm
+                    font-medium
+                    hover:opacity-90
+                    transition
+                  "
+                >
+                  Dashboard
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -160,16 +254,16 @@ export default function PricingPage() {
 
             {/* GUARANTEE */}
             <div
-                className="
+              className="
                 mt-5
                 text-center
                 text-sm
                 text-gray-500
                 leading-relaxed
-                        "
+              "
             >
-            ✅ Annule ton abonnement à tout moment
-            depuis ton espace client Lemon Squeezy.
+              ✅ Annule ton abonnement à tout moment
+              depuis ton espace client Lemon Squeezy.
             </div>
 
             {/* PAYMENT INFO */}
