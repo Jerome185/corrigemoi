@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server"
+
+import crypto from "crypto"
+
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
@@ -8,78 +11,123 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
+    // RAW BODY
+    const rawBody = await req.text()
 
-    console.log("LEMON WEBHOOK:", JSON.stringify(body, null, 2))
+    // SIGNATURE HEADER
+    const signature =
+      req.headers.get("x-signature")
 
-    const eventName = body.meta.event_name
-
-    if (
-      eventName === "subscription_created" ||
-      eventName === "subscription_updated"
-    ) {
-      const subscription = body.data.attributes
-
-      const email = subscription.user_email
-
-      console.log("EMAIL FROM LEMON:", email)
-
-      // Recherche utilisateur Supabase via email
-      const { data: usersData, error: userError } =
-        await supabase.auth.admin.listUsers()
-
-      if (userError) {
-        console.error("USER FETCH ERROR:", userError)
-      }
-
-      const matchedUser =
-        usersData?.users.find(
-          (u) => u.email?.toLowerCase() === email?.toLowerCase()
-        ) || null
-
-      console.log("MATCHED USER:", matchedUser)
-
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .upsert(
-          {
-            lemon_subscription_id: String(body.data.id),
-            user_id: matchedUser?.id || null,
-            customer_email: email,
-            status: subscription.status,
-            variant_id: String(subscription.variant_id),
-          },
-          {
-            onConflict: "lemon_subscription_id",
-          }
-        )
-        .select()
-
-      if (error) {
-        console.error("UPSERT ERROR:", error)
-      }
-
-      console.log("UPSERT RESULT:", data)
+    if (!signature) {
+      return NextResponse.json(
+        {
+          error: "Signature manquante",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    if (eventName === "subscription_cancelled") {
-      const { error } = await supabase
+    // VERIFY SIGNATURE
+    const secret =
+      process.env
+        .LEMON_SQUEEZY_WEBHOOK_SECRET!
+
+    const digest = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex")
+
+    const isValid =
+      crypto.timingSafeEqual(
+        Buffer.from(digest),
+        Buffer.from(signature)
+      )
+
+    if (!isValid) {
+      return NextResponse.json(
+        {
+          error: "Signature invalide",
+        },
+        {
+          status: 401,
+        }
+      )
+    }
+
+    // PARSE JSON
+    const body = JSON.parse(rawBody)
+
+    console.log(
+      "LEMON WEBHOOK:",
+      JSON.stringify(body, null, 2)
+    )
+
+    const eventName =
+      body.meta.event_name
+
+    // CREATE / UPDATE
+    if (
+      eventName ===
+        "subscription_created" ||
+      eventName ===
+        "subscription_updated"
+    ) {
+      const subscription =
+        body.data.attributes
+
+      const userId =
+        subscription.custom_data
+          ?.user_id || null
+
+      await supabase
+        .from("subscriptions")
+        .upsert({
+          lemon_subscription_id:
+            String(body.data.id),
+
+          user_id: userId,
+
+          customer_email:
+            subscription.user_email,
+
+          status:
+            subscription.status,
+
+          variant_id: String(
+            subscription.variant_id
+          ),
+
+          renews_at:
+            subscription.renews_at,
+        })
+    }
+
+    // CANCEL
+    if (
+      eventName ===
+      "subscription_cancelled"
+    ) {
+      await supabase
         .from("subscriptions")
         .update({
           status: "cancelled",
         })
-        .eq("lemon_subscription_id", String(body.data.id))
-
-      if (error) {
-        console.error("CANCEL ERROR:", error)
-      }
+        .eq(
+          "lemon_subscription_id",
+          String(body.data.id)
+        )
     }
 
     return NextResponse.json({
       success: true,
     })
   } catch (error) {
-    console.error("WEBHOOK ERROR:", error)
+    console.error(
+      "WEBHOOK ERROR:",
+      error
+    )
 
     return NextResponse.json(
       {
